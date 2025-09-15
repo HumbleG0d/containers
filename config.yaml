@@ -1,0 +1,107 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  
+  # Receiver para logs de Jenkins via HTTP
+  # filelog:
+  #   include: [ "/var/log/jenkins/*.log" ]
+  #   start_at: beginning
+  #   operators:
+  #     - type: regex_parser
+  #       regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[(?P<level>\w+)\] (?P<message>.*)'
+  #       timestamp:
+  #         parse_from: attributes.timestamp
+  #         layout: '2006-01-02 15:04:05'
+  #       severity:
+  #         parse_from: attributes.level
+  #         mapping:
+  #           ERROR: error
+  #           WARN: warn
+  #           INFO: info
+  #           DEBUG: debug
+
+processors:
+  # Procesador para agregar metadatos de Jenkins
+  attributes:
+    actions:
+      - key: service.name
+        value: jenkins
+        action: insert
+      - key: service.version
+        value: "2.400"
+        action: insert
+      - key: deployment.environment
+        value: production
+        action: insert
+  
+  # Procesador para filtrar logs importantes
+  filter:
+    logs:
+      log_record:
+        - 'attributes["level"] == "ERROR" or attributes["level"] == "WARN"'
+  
+  # Procesador para enriquecer logs con información de pipeline
+  resource:
+    attributes:
+      - key: pipeline.name
+        from_attribute: jenkins.pipeline.name
+        action: insert
+      - key: build.number
+        from_attribute: jenkins.build.number
+        action: insert
+      - key: job.name
+        from_attribute: jenkins.job.name
+        action: insert
+  
+  # Procesador de memoria para optimizar rendimiento
+  memory_limiter:
+    limit_mib: 512
+    spike_limit_mib: 128
+    check_interval: 5s
+  
+  # Procesador de lotes para mejorar eficiencia
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+exporters:
+  # Exportador a Elasticsearch
+  elasticsearch:
+    endpoints: [http://elasticsearch:9200]
+    mapping:
+      mode: ecs
+    logs_index: jenkins-logs
+  
+  # Exportador de debugging
+  debug:
+    verbosity: detailed
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes, filter, resource, batch]
+      exporters: [elasticsearch, debug]
+    
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [debug]
+    
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [elasticsearch, debug]
+  
+  extensions: []
+  
+  telemetry:
+    logs:
+      level: info
