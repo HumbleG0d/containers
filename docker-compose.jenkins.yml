@@ -1,3 +1,4 @@
+#docker-compose-jenkis.yml
 services:
   jenkins:
     image: jenkins/jenkins:lts
@@ -7,13 +8,8 @@ services:
       - 8080:8080
     volumes:
       - jenkins_data:/var/jenkins_home
-    #environment:
-    #  - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-    #  - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
-    #  - OTEL_SERVICE_NAME=jenkins
-    #  - OTEL_SERVICE_VERSION=2.400
-    #  - OTEL_RESOURCE_ATTRIBUTES=service.name=jenkins,service.version=2.400,deployment.environment=production
-    #  - JAVA_OPTS=-Djenkins.install.runSetupWizard=false -Djava.util.logging.config.file=/etc/jenkins/logging.properties
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
     container_name: jenkins
     networks:
       - otel-network

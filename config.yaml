@@ -1,3 +1,4 @@
+#config.yml
 receivers:
   otlp:
     protocols:
@@ -7,22 +8,12 @@ receivers:
         endpoint: 0.0.0.0:4318
   
   # Receiver para logs de Jenkins via HTTP
-  # filelog:
-  #   include: [ "/var/log/jenkins/*.log" ]
-  #   start_at: beginning
-  #   operators:
-  #     - type: regex_parser
-  #       regex: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \[(?P<level>\w+)\] (?P<message>.*)'
-  #       timestamp:
-  #         parse_from: attributes.timestamp
-  #         layout: '2006-01-02 15:04:05'
-  #       severity:
-  #         parse_from: attributes.level
-  #         mapping:
-  #           ERROR: error
-  #           WARN: warn
-  #           INFO: info
-  #           DEBUG: debug
+  filelog:
+    include: [/var/log/jenkins/*.log]
+    operators:
+      - type: regex_parser
+        regex: '^OTEL_LOG: (?P<json_log>.*)'
+        parse_from: attributes.json_log
 
 processors:
   # Procesador para agregar metadatos de Jenkins
@@ -38,24 +29,18 @@ processors:
         value: production
         action: insert
   
-  # Procesador para filtrar logs importantes
-  filter:
-    logs:
-      log_record:
-        - 'attributes["level"] == "ERROR" or attributes["level"] == "WARN"'
+  # Procesador para filtrar logs importantes (comentado para capturar todos)
+  # filter:
+  #   logs:
+  #     log_record:
+  #       - 'attributes["level"] == "ERROR" or attributes["level"] == "WARN"'
   
   # Procesador para enriquecer logs con información de pipeline
   resource:
     attributes:
-      - key: pipeline.name
-        from_attribute: jenkins.pipeline.name
-        action: insert
-      - key: build.number
-        from_attribute: jenkins.build.number
-        action: insert
-      - key: job.name
-        from_attribute: jenkins.job.name
-        action: insert
+      - key: service.name
+        value: jenkins
+        action: upsert
   
   # Procesador de memoria para optimizar rendimiento
   memory_limiter:
@@ -73,9 +58,9 @@ exporters:
   # Exportador a Elasticsearch
   elasticsearch:
     endpoints: [http://elasticsearch:9200]
+    logs_index: jenkins-logs
     mapping:
       mode: ecs
-    logs_index: jenkins-logs
   
   # Exportador de debugging
   debug:
@@ -87,7 +72,7 @@ service:
   pipelines:
     logs:
       receivers: [otlp]
-      processors: [memory_limiter, attributes, filter, resource, batch]
+      processors: [memory_limiter, attributes, resource, batch]
       exporters: [elasticsearch, debug]
     
     metrics:
