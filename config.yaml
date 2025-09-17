@@ -12,10 +12,11 @@ receivers:
     operators:
       - type: regex_parser
         regex: '^(?P<log_message>.*)'
-        parse_from: attributes.log_message
+        parse_from: body
+        parse_to: attributes # Probar cambiar a body
 
 processors:
-  # Procesador para agregar metadatos de Jenkins (solo para logs)
+  # Procesador para agregar metadatos de Jenkins 
   attributes/jenkins:
     actions:
       - key: service.name
@@ -41,13 +42,13 @@ processors:
         value: production
         action: insert
 
-  # FILTRO: Solo Jenkins logs (filelog receiver)
+  # FILTRO: Solo Jenkins logs 
   filter/jenkins_only:
     logs:
       log_record:
         - 'attributes["log_source"] == "jenkins"'
 
-  # FILTRO: Solo Express API (datos de OpenTelemetry)
+  # FILTRO: Solo Express API 
   filter/express_only:
     traces:
       span:
@@ -79,13 +80,13 @@ processors:
         action: upsert
 
 exporters:
-  # Exportador a APM Server (SOLO para Express API)
+  # Exportador a APM Server 
   otlp/apm:
     endpoint: http://apm-server:8200
     tls:
       insecure: true
 
-  # Exportador directo a Elasticsearch (SOLO para Jenkins)
+  # Exportador directo a Elasticsearch 
   elasticsearch/jenkins:
     endpoints: [http://elasticsearch:9200]
     logs_index: jenkins-logs-%{+yyyy.MM.dd}
