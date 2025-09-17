@@ -77,7 +77,7 @@ Esta configuración está preparada para recibir datos de una aplicación extern
 #### ERROR: POR CORREGIR
  No se logra obtener el servicio ` express-metrics-api` 
 
- ![](https://github.com/HumbleG0d/containers/blob/main/assets/image2.png)
+ ![](https://github.com/HumbleG0d/containers/blob/main/assets/image1.png)
 
 ## 4. Cómo Ejecutar
 
