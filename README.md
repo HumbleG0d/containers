@@ -1,8 +1,12 @@
 # Documentación del Proyecto de Observabilidad y CI/CD
 
+## Proyecto que va de la mano
+- https://github.com/HumbleG0d/test-mcp
+
 ## 1. Resumen del Proyecto
 
 Este proyecto implementa una plataforma integrada de observabilidad y CI/CD utilizando Docker y Docker Compose. El objetivo principal es crear un entorno robusto para monitorizar aplicaciones y automatizar los flujos de trabajo de desarrollo.
+
 
 La solución combina las siguientes tecnologías clave:
 
