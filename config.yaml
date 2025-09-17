@@ -8,11 +8,11 @@ receivers:
   
   # Receiver para logs de Jenkins via HTTP
   filelog:
-    include: [/var/log/jenkins/*.log]
+    include: [/var/jenkins_home/logs/*.log, /var/jenkins_home/*.log]
     operators:
       - type: regex_parser
-        regex: '^OTEL_LOG: (?P<json_log>.*)'
-        parse_from: attributes.json_log
+        regex: '^(?P<log_message>.*)'
+        parse_from: attributes.log_message
 
 processors:
   # Procesador para agregar metadatos de Jenkins (solo para logs)
