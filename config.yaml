@@ -1,4 +1,3 @@
-#config.yml
 receivers:
   otlp:
     protocols:
@@ -16,8 +15,8 @@ receivers:
         parse_from: attributes.json_log
 
 processors:
-  # Procesador para agregar metadatos de Jenkins
-  attributes:
+  # Procesador para agregar metadatos de Jenkins (solo para logs)
+  attributes/jenkins:
     actions:
       - key: service.name
         value: jenkins
@@ -28,64 +27,115 @@ processors:
       - key: deployment.environment
         value: production
         action: insert
-  
-  # Procesador para filtrar logs importantes (comentado para capturar todos)
-  # filter:
-  #   logs:
-  #     log_record:
-  #       - 'attributes["level"] == "ERROR" or attributes["level"] == "WARN"'
-  
-  # Procesador para enriquecer logs con información de pipeline
-  resource:
-    attributes:
-      - key: service.name
+      - key: log_source
         value: jenkins
-        action: upsert
-  
+        action: insert
+
+  # Procesador para identificar datos de Express API
+  attributes/express:
+    actions:
+      - key: log_source
+        value: express-api
+        action: insert
+      - key: deployment.environment
+        value: production
+        action: insert
+
+  # FILTRO: Solo Jenkins logs (filelog receiver)
+  filter/jenkins_only:
+    logs:
+      log_record:
+        - 'attributes["log_source"] == "jenkins"'
+
+  # FILTRO: Solo Express API (datos de OpenTelemetry)
+  filter/express_only:
+    traces:
+      span:
+        - 'resource.attributes["service.name"] == "express-metrics-api"'
+    metrics:
+      metric:
+        - 'resource.attributes["service.name"] == "express-metrics-api"'
+    logs:
+      log_record:
+        - 'resource.attributes["service.name"] == "express-metrics-api"'
+
   # Procesador de memoria para optimizar rendimiento
   memory_limiter:
     limit_mib: 512
     spike_limit_mib: 128
     check_interval: 5s
   
-  # Procesador de lotes para mejorar eficiencia
+  # Procesador de lotes
   batch:
     timeout: 1s
     send_batch_size: 1024
     send_batch_max_size: 2048
 
+  # Procesador de recursos
+  resource:
+    attributes:
+      - key: cluster
+        value: local-dev
+        action: upsert
+
 exporters:
-  # Exportador a Elasticsearch
-  elasticsearch:
+  # Exportador a APM Server (SOLO para Express API)
+  otlp/apm:
+    endpoint: http://apm-server:8200
+    tls:
+      insecure: true
+
+  # Exportador directo a Elasticsearch (SOLO para Jenkins)
+  elasticsearch/jenkins:
     endpoints: [http://elasticsearch:9200]
-    logs_index: jenkins-logs
+    logs_index: jenkins-logs-%{+yyyy.MM.dd}
     mapping:
       mode: ecs
-  
+    auth:
+      authenticator: basicauth/elasticsearch
+
   # Exportador de debugging
   debug:
     verbosity: detailed
     sampling_initial: 5
     sampling_thereafter: 200
 
+extensions:
+  basicauth/elasticsearch:
+    client_auth:
+      username: elastic
+      password: somethingsecret
+
+  health_check:
+    endpoint: 0.0.0.0:13133
+
 service:
   pipelines:
-    logs:
-      receivers: [otlp]
-      processors: [memory_limiter, attributes, resource, batch]
-      exporters: [elasticsearch, debug]
+    # Pipeline 1: JENKINS LOGS → Elasticsearch directo
+    logs/jenkins:
+      receivers: [filelog]
+      processors: [memory_limiter, attributes/jenkins, filter/jenkins_only, batch]
+      exporters: [elasticsearch/jenkins, debug]
     
-    metrics:
+    # Pipeline 2: EXPRESS METRICS → APM Server
+    metrics/express:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [debug]
+      processors: [memory_limiter, attributes/express, filter/express_only, batch]
+      exporters: [otlp/apm, debug]
     
-    traces:
+    # Pipeline 3: EXPRESS TRACES → APM Server
+    traces/express:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
-      exporters: [elasticsearch, debug]
+      processors: [memory_limiter, attributes/express, filter/express_only, resource, batch]
+      exporters: [otlp/apm, debug]
+
+    # Pipeline 4: EXPRESS LOGS → APM Server 
+    logs/express:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/express, filter/express_only, batch]
+      exporters: [otlp/apm, debug]
   
-  extensions: []
+  extensions: [basicauth/elasticsearch, health_check]
   
   telemetry:
     logs:
