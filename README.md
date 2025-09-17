@@ -16,6 +16,7 @@ La solución combina las siguientes tecnologías clave:
 
 El entorno está diseñado para ser modular y escalable, permitiendo la monitorización tanto de los servicios de infraestructura (como el propio Jenkins) como de aplicaciones externas.
 
+
 ## 2. Componentes
 
 La arquitectura se compone de los siguientes contenedores Docker, orquestados con Docker Compose.
@@ -52,6 +53,20 @@ Todos los servicios se comunican a través de una red Docker bridge personalizad
 El `otel-collector` está configurado con varias pipelines para manejar diferentes tipos de datos:
 
 ### Flujo 1: Logs de Jenkins a Elasticsearch
+
+#### Configuracion Jenkins
+
+Tener instalados los siguientes plugins
+
+![](https://github.com/HumbleG0d/containers/blob/main/assets/image3.png)
+
+
+Configurar el systema de Jenkins
+
+![](https://github.com/HumbleG0d/containers/blob/main/assets/image4.png)
+
+![](https://github.com/HumbleG0d/containers/blob/main/assets/image5.png)
+
 
 1.  **Recolección**: El receptor `filelog` en el `otel-collector` monitoriza activamente los archivos `*.log` dentro del volumen `/var/jenkins_home` (el volumen de datos de Jenkins).
 2.  **Procesamiento**:
