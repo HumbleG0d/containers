@@ -1,14 +1,7 @@
-// app.js
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-const { v4: uuidv4 } = require('uuid');
-
 // OpenTelemetry setup (debe ir antes de importar otras librerías)
 const { NodeSDK } = require('@opentelemetry/sdk-node');
 const { Resource } = require('@opentelemetry/resources');
-const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
+const { SERVICE_NAME, SERVICE_VERSION, DEPLOYMENT_ENVIRONMENT } = require('@opentelemetry/semantic-conventions');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
 const { OTLPMetricExporter } = require('@opentelemetry/exporter-metrics-otlp-http');
 const { PeriodicExportingMetricReader } = require('@opentelemetry/sdk-metrics');
@@ -17,9 +10,9 @@ const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumenta
 // Configuración de OpenTelemetry
 const sdk = new NodeSDK({
   resource: new Resource({
-    [SemanticResourceAttributes.SERVICE_NAME]: 'express-metrics-api',
-    [SemanticResourceAttributes.SERVICE_VERSION]: '1.0.0',
-    [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
+    [SERVICE_NAME]: 'express-metrics-api',
+    [SERVICE_VERSION]: '1.0.0',
+    [DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
   }),
   traceExporter: new OTLPTraceExporter({
     url: process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT || 'http://otel-collector:4318/v1/traces',
@@ -35,6 +28,13 @@ const sdk = new NodeSDK({
 
 // Inicializar OpenTelemetry
 sdk.start();
+
+// app.js
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const { v4: uuidv4 } = require('uuid');
 
 // Importar métricas manuales
 const { trace, metrics } = require('@opentelemetry/api');

@@ -21,13 +21,7 @@ check_services() {
     else
         echo "❌ APM Server no responde"
     fi
-    
-    # Collector
-    if curl -f -s http://localhost:4318 > /dev/null 2>&1; then
-        echo "✅ Collector funcionando (puerto 4318)"
-    else
-        echo "❌ Collector no responde"
-    fi
+
     
     # Elasticsearch
     if curl -f -s -u elastic:somethingsecret http://localhost:9200 > /dev/null; then

@@ -2,21 +2,12 @@
 apm-server:
   host: "0.0.0.0:8200"
   
-  # Configuración de autenticación
-  auth:
-    anonymous:
-      enabled: true
-      allow_service: ['express-metrics-api']  # ESPECÍFICO: Solo Express API
-      allow_agent: ['*']
-    
   # Configuración para OpenTelemetry
   otlp:
     grpc:
       enabled: true
-      host: "0.0.0.0:8200"
     http:
-      enabled: true  
-      host: "0.0.0.0:8200"
+      enabled: true
 
 # Configuración con credenciales de Elasticsearch
 output.elasticsearch:
@@ -38,15 +29,6 @@ output.elasticsearch:
     - index: "apm-%{[agent.version]}-metric-%{+yyyy.MM.dd}"
       when.contains:
         processor.event: "metric"
-
-  # FILTRO: Solo procesar datos de Express API
-  pipeline: apm_user_agent
-  pipelines:
-    - pipeline: apm_user_agent
-      processors:
-        - drop:
-            when.not.equals:
-              service.name: "express-metrics-api"
 
 setup.kibana:
   host: "http://kibana:5601"

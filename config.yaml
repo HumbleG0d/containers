@@ -81,7 +81,7 @@ processors:
 
 exporters:
   # Exportador a APM Server 
-  otlp/apm:
+  otlphttp/apm:
     endpoint: http://apm-server:8200
     tls:
       insecure: true
@@ -121,20 +121,20 @@ service:
     # Pipeline 2: EXPRESS METRICS → APM Server
     metrics/express:
       receivers: [otlp]
-      processors: [memory_limiter, attributes/express, filter/express_only, batch]
-      exporters: [otlp/apm, debug]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/apm, debug]
     
     # Pipeline 3: EXPRESS TRACES → APM Server
     traces/express:
       receivers: [otlp]
-      processors: [memory_limiter, attributes/express, filter/express_only, resource, batch]
-      exporters: [otlp/apm, debug]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp/apm, debug]
 
     # Pipeline 4: EXPRESS LOGS → APM Server 
     logs/express:
       receivers: [otlp]
-      processors: [memory_limiter, attributes/express, filter/express_only, batch]
-      exporters: [otlp/apm, debug]
+      processors: [memory_limiter, batch]
+      exporters: [otlphttp/apm, debug]
   
   extensions: [basicauth/elasticsearch, health_check]
   
